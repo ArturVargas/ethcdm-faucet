@@ -4,6 +4,46 @@ import { createPublicClient, http, getAddress } from 'viem';
 import { optimism } from 'viem/chains';
 import { erc20Abi } from 'viem';
 
+// Interfaces TypeScript
+interface Stats {
+  ethPrice: number;
+  totalClaims: number;
+  networks: {
+    [key: string]: {
+      totalClaims: number;
+      totalAmountETH: number;
+      totalAmountUSD: number;
+      symbol: string;
+    };
+  };
+}
+
+interface BalanceInfo {
+  hasEnoughFunds: boolean;
+  estimatedClaims: number;
+  balance: string;
+}
+
+interface Balances {
+  hasAnyFunds: boolean;
+  networks: {
+    [key: string]: BalanceInfo;
+  };
+}
+
+interface Sponsor {
+  id: string;
+  name: string;
+  twitterHandle: string;
+  donationAmount: string;
+  network: string;
+  txHash?: string;
+  avatar?: string;
+}
+
+interface SponsorsData {
+  sponsors: Sponsor[];
+}
 
 const PULPA = process.env.NEXT_PUBLIC_OP_PULPA as `0x${string}`;
 
@@ -13,11 +53,11 @@ export default function Home() {
   const [question, setQuestion] = useState<{ id: string; text: string; message: string } | null>(null);
   const [answer, setAnswer] = useState<string>('');
   const [selectedNetwork, setSelectedNetwork] = useState<string>('arbitrum');
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [showStats, setShowStats] = useState<boolean>(false);
-  const [balances, setBalances] = useState<any>(null);
+  const [balances, setBalances] = useState<Balances | null>(null);
   const [loadingBalances, setLoadingBalances] = useState<boolean>(false);
-  const [sponsors, setSponsors] = useState<any>(null);
+  const [sponsors, setSponsors] = useState<SponsorsData | null>(null);
   const [loadingSponsors, setLoadingSponsors] = useState<boolean>(false);
 
   const [isClaiming, setIsClaiming] = useState(false);
@@ -54,7 +94,7 @@ export default function Home() {
           setSelectedNetwork(networkWithFunds);
         }
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error cargando saldos:', e);
     } finally {
       setLoadingBalances(false);
@@ -67,7 +107,7 @@ export default function Home() {
       const data = await response.json();
       setQuestion(data);
       setAnswer('');
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error cargando captcha:', e);
     }
   }
@@ -89,7 +129,7 @@ export default function Home() {
       const response = await fetch('/api/sponsors');
       const data = await response.json();
       setSponsors(data);
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error cargando sponsors:', e);
     } finally {
       setLoadingSponsors(false);
@@ -153,7 +193,7 @@ export default function Home() {
           throw new Error(data.error || 'Error al reclamar');
         }
       } else {
-        setStatus(`Listo ✅ Tx: ${data.txHash}`);
+      setStatus(`Listo ✅ Tx: ${data.txHash}`);
         // Cargar nuevo captcha para próximo uso
         loadNewCaptcha();
       }
@@ -372,7 +412,7 @@ export default function Home() {
       {/* Lista de sponsors */}
       <div className="grid gap-4 md:grid-cols-2">
         {sponsors?.sponsors?.length > 0 ? (
-          sponsors.sponsors.map((sponsor: any) => (
+          sponsors.sponsors.map((sponsor: Sponsor) => (
             <SponsorCard key={sponsor.id} sponsor={sponsor} />
           ))
         ) : !loadingSponsors ? (
@@ -404,7 +444,7 @@ export default function Home() {
 }
 
 // Componente para mostrar cada sponsor
-function SponsorCard({ sponsor }: { sponsor: any }) {
+function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
   const getNetworkInfo = (network: string) => {
     const networks: { [key: string]: { name: string; color: string; explorer: string; symbol: string } } = {
       arbitrum: { name: 'Arbitrum', color: 'text-blue-400', explorer: 'https://arbiscan.io/tx/', symbol: 'ETH' },
@@ -443,8 +483,8 @@ function SponsorCard({ sponsor }: { sponsor: any }) {
             <h3 className="font-medium">{sponsor.name}</h3>
             <a 
               href={`https://x.com/${sponsor.twitterHandle}`}
-              target="_blank"
-              rel="noopener noreferrer"
+          target="_blank"
+          rel="noopener noreferrer"
               className="text-blue-400 hover:text-blue-300 text-sm"
             >
               @{sponsor.twitterHandle}
@@ -467,8 +507,8 @@ function SponsorCard({ sponsor }: { sponsor: any }) {
             <div className="mt-2">
               <a 
                 href={`${networkInfo.explorer}${sponsor.txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
+          target="_blank"
+          rel="noopener noreferrer"
                 className="text-xs text-gray-500 hover:text-gray-400 font-mono"
               >
                 🔗 {sponsor.txHash.slice(0, 10)}...{sponsor.txHash.slice(-8)}

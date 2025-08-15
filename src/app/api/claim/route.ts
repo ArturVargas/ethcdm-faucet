@@ -151,8 +151,9 @@ export async function POST(req: NextRequest) {
 
     console.log('Claim registrado exitosamente:', insertData);
     return NextResponse.json({ ok: true, txHash, nextEligibleAt });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Fallo inesperado' }, { status: 500 });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : 'Fallo inesperado';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
